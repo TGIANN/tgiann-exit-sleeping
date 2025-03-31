@@ -20,12 +20,18 @@ When players log out, a ped version of their character spawns at their last loca
 - **Dynamic Updates:** Automatically updates the last location of moved players.
 - **Logout Time Filter:** Only displays players who logged out within the last 3 days (this value is configurable via the config file).
 
+## Requirements
+
+- **Frameworks:** Compatible with ESX, QB or QBOx.
+- **tgiann-core:** This dependency is required. You can find it here: [tgiann-core Package](https://tgiann.com/en/package/5869215)
+
 ## Installation
 
 1. Download the script from the [Releases](https://github.com/TGIANN/tgiann-exit-sleeping/releases) section.
 2. Extract the downloaded files to your FiveM server's resource directory.
 3. Add `ensure tgiann-exit-sleeping` to your server.cfg file.
-4. Restart your FiveM server.
+4. Import the sql.sql file into your database to create the necessary tables and fields.
+5. Restart your FiveM server.
 
 ## Usage
 
