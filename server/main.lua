@@ -12,7 +12,7 @@ local function getPlayerSkin(citizenId)
         if not row then return end
         return { model = row.model, skin = json.decode(row.skin) }
     elseif config.illenium_appearance then
-        local result = MySQL.single.await('SELECT * FROM playerskins WHERE citizenid = ? AND active = 1', { identifier })
+        local result = MySQL.single.await('SELECT * FROM playerskins WHERE citizenid = ? AND active = 1', { citizenId })
         if result then
             local skin = json.decode(result.skin)
             return {
@@ -21,7 +21,7 @@ local function getPlayerSkin(citizenId)
             }
         end
     elseif config.rcore_clothing then
-        local skin = exports.rcore_clothing:getSkinByIdentifier(identifier)
+        local skin = exports.rcore_clothing:getSkinByIdentifier(citizenId)
         if skin then
             return {
                 model = skin.ped_model,
@@ -29,7 +29,7 @@ local function getPlayerSkin(citizenId)
             }
         end
     elseif config.framework == "qb" then
-        local result = MySQL.single.await('SELECT `skin`, `model` FROM playerskins WHERE citizenid = ? AND active = ?', { identifier, 1 })
+        local result = MySQL.single.await('SELECT `skin`, `model` FROM playerskins WHERE citizenid = ? AND active = ?', { citizenId, 1 })
         return {
             model = result?.model or `mp_m_freemode_01`,
             skin = result?.skin and json.decode(result.skin) or {}
