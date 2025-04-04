@@ -11,7 +11,7 @@ local function getPlayerSkin(citizenId)
 
         if not row then return end
         return { model = row.model, skin = json.decode(row.skin) }
-    elseif config.illenium_appearance then
+    elseif config.clotheScripts.illenium_appearance then
         local result = MySQL.single.await('SELECT * FROM playerskins WHERE citizenid = ? AND active = 1', { citizenId })
         if result then
             local skin = json.decode(result.skin)
@@ -20,7 +20,7 @@ local function getPlayerSkin(citizenId)
                 skin = skin,
             }
         end
-    elseif config.rcore_clothing then
+    elseif config.clotheScripts.rcore_clothing then
         local skin = exports.rcore_clothing:getSkinByIdentifier(citizenId)
         if skin then
             return {
@@ -28,6 +28,10 @@ local function getPlayerSkin(citizenId)
                 skin = skin.skin
             }
         end
+    elseif config.clotheScripts.crm_appearance then
+        -- https://corem.gitbook.io/welcome/crm-appearance/configuration#id-4.-all-exports
+        -- Nothing is explained in docs to pull the skin table and skin data of the character from the server. if you know this, send pull request
+        return nil
     elseif config.framework == "qb" then
         local result = MySQL.single.await('SELECT `skin`, `model` FROM playerskins WHERE citizenid = ? AND active = ?', { citizenId, 1 })
         return {

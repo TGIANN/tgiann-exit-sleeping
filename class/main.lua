@@ -89,11 +89,11 @@ if not IsDuplicityVersion() then
         if not skinData then return end
         if config.clotheScripts.tgiann_clothing then
             exports["tgiann-clothing"]:LoadPedClothing(skinData, ped)
-        elseif config.rcore_clothing then
+        elseif config.clotheScripts.rcore_clothing then
             exports.rcore_clothing:setPedSkin(ped, skinData)
-        elseif config.crm_appearance then
+        elseif config.clotheScripts.crm_appearance then
             exports['crm-appearance']:crm_set_ped_appearance(ped, skinData)
-        elseif config.illenium_appearance then
+        elseif config.clotheScripts.illenium_appearance then
             exports['illenium-appearance']:setPedAppearance(ped, skinData)
         elseif config.framework == "qb" then
             TriggerEvent('qb-clothing:client:loadPlayerClothing', skinData, ped)
