@@ -8,9 +8,12 @@ local entityList = {}
 local function getPlayerSkin(citizenId)
     if config.clotheScripts.tgiann_clothing then
         local row = MySQL.single.await('SELECT `model`, `skin` FROM `tgiann_skin` WHERE `citizenid` = ? LIMIT 1', { citizenId })
-
-        if not row then return end
-        return { model = row.model, skin = json.decode(row.skin) }
+        if row then
+            return {
+                model = row.model,
+                skin = json.decode(row.skin)
+            }
+        end
     elseif config.clotheScripts.illenium_appearance then
         local result = MySQL.single.await('SELECT * FROM playerskins WHERE citizenid = ? AND active = 1', { citizenId })
         if result then
@@ -28,16 +31,22 @@ local function getPlayerSkin(citizenId)
                 skin = skin.skin
             }
         end
-    elseif config.clotheScripts.crm_appearance then
-        -- https://corem.gitbook.io/welcome/crm-appearance/configuration#id-4.-all-exports
-        -- Nothing is explained in docs to pull the skin table and skin data of the character from the server. if you know this, send pull request
-        return nil
-    elseif config.framework == "qb" then
-        local result = MySQL.single.await('SELECT `skin`, `model` FROM playerskins WHERE citizenid = ? AND active = ?', { citizenId, 1 })
-        return {
-            model = result?.model or `mp_m_freemode_01`,
-            skin = result?.skin and json.decode(result.skin) or {}
-        }
+    elseif config.framework == "qb" then -- CRM Using same table as qb-clothing
+        local row = MySQL.single.await('SELECT `skin`, `model` FROM playerskins WHERE citizenid = ? AND active = ?', { citizenId, 1 })
+        if row then
+            return {
+                model = row.model or `mp_m_freemode_01`,
+                skin = row.skin and json.decode(row.skin) or {}
+            }
+        end
+    elseif config.framework == "esx" then -- CRM Using same table as skin
+        local row = MySQL.single.await('SELECT `skin`, `sex` FROM users WHERE identifier = ?', { citizenId })
+        if row then
+            return {
+                model = row.sex == "m" and `mp_m_freemode_01` or `mp_f_freemode_01`,
+                skin = row.skin and json.decode(row.skin) or {}
+            }
+        end
     end
 
     return nil
