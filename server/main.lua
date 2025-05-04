@@ -14,15 +14,6 @@ local function getPlayerSkin(citizenId)
                 skin = json.decode(row.skin)
             }
         end
-    elseif config.clotheScripts.illenium_appearance then
-        local result = MySQL.single.await('SELECT * FROM playerskins WHERE citizenid = ? AND active = 1', { citizenId })
-        if result then
-            local skin = json.decode(result.skin)
-            return {
-                model = skin.model and joaat(skin.model) or `mp_m_freemode_01`,
-                skin = skin,
-            }
-        end
     elseif config.clotheScripts.rcore_clothing then
         local skin = exports.rcore_clothing:getSkinByIdentifier(citizenId)
         if skin then
@@ -31,7 +22,7 @@ local function getPlayerSkin(citizenId)
                 skin = skin.skin
             }
         end
-    elseif config.framework == "qb" then -- CRM Using same table as qb-clothing
+    elseif config.framework == "qb" then -- CRM and illenium_appearance Using same table as qb-clothing
         local row = MySQL.single.await('SELECT `skin`, `model` FROM playerskins WHERE citizenid = ? AND active = ?', { citizenId, 1 })
         if row then
             return {
@@ -39,7 +30,7 @@ local function getPlayerSkin(citizenId)
                 skin = row.skin and json.decode(row.skin) or {}
             }
         end
-    elseif config.framework == "esx" then -- CRM Using same table as skin
+    elseif config.framework == "esx" then -- CRM and illenium_appearance Using same table as skin
         local row = MySQL.single.await('SELECT `skin`, `sex` FROM users WHERE identifier = ?', { citizenId })
         if row then
             return {
@@ -89,7 +80,8 @@ local function playerDropped(src)
         },
         animationIndex = math.random(1, #config.sleepAnimation),
         carrying = false,
-        ped = nil
+        ped = nil,
+        vehicle = nil,
     })
 end
 
@@ -120,9 +112,10 @@ end)
 
 RegisterNetEvent('tgiann-exit-sleeping:server:startCarrying')
 AddEventHandler('tgiann-exit-sleeping:server:startCarrying', function(citizenId, netId)
+    local src = source
     local sleepingPlayer = Sleeping.get(citizenId)
     if not sleepingPlayer then return end
-    sleepingPlayer:setCarrying()
+    sleepingPlayer:setCarrying(src, netId)
     entityList[citizenId] = netId
     local entity = NetworkGetEntityFromNetworkId(netId)
     if not entity or not DoesEntityExist(entity) then return end
@@ -145,14 +138,27 @@ AddEventHandler('tgiann-exit-sleeping:server:stopCarrying', function(citizenId, 
     local playerPed = GetPlayerPed(src)
     local playerCoords = GetEntityCoords(playerPed)
     local playerHeading = GetEntityHeading(playerPed)
-    local newCoords = {
-        x = playerCoords.x,
-        y = playerCoords.y,
-        z = playerCoords.z,
-        w = playerHeading
-    }
+    local newCoords = { x = playerCoords.x, y = playerCoords.y, z = playerCoords.z, w = playerHeading }
+
+    sleepingPlayer:stopCarrying()
     sleepingPlayer:setCoords(newCoords)
-    debug("stopCarrying", citizenId, netId)
+    sleepingPlayer:updateSql()
+end)
+
+RegisterNetEvent('tgiann-exit-sleeping:server:putInVehicle')
+AddEventHandler('tgiann-exit-sleeping:server:putInVehicle', function(citizenId, vehicleNetId, seatIndex)
+    local sleepingPlayer = Sleeping.get(citizenId)
+    if not sleepingPlayer then return end
+    sleepingPlayer:putInVehicle(vehicleNetId, seatIndex)
+end)
+
+RegisterNetEvent('tgiann-exit-sleeping:server:outVehicle')
+AddEventHandler('tgiann-exit-sleeping:server:outVehicle', function(citizenId)
+    local src = source
+    local sleepingPlayer = Sleeping.get(citizenId)
+    if not sleepingPlayer then return end
+    sleepingPlayer:outVehicle()
+    TriggerClientEvent("tgiann-exit-sleeping:client:TargetCarryAction", src, citizenId)
 end)
 
 AddEventHandler('onResourceStop', function(resourceName)
@@ -164,10 +170,13 @@ AddEventHandler('onResourceStop', function(resourceName)
 end)
 
 MySQL.ready(function()
-    local response = MySQL.query.await('SELECT `sleepData` FROM `tgiann_exit_sleeping` WHERE `unixTime` <= (UNIX_TIMESTAMP() - ?)', { config.sleepingDay * 86400 })
+    local response = MySQL.query.await('SELECT `sleepData` FROM `tgiann_exit_sleeping` WHERE `unixTime` >= (UNIX_TIMESTAMP() - ?)', { config.sleepingDay * 86400 })
+    debug("Loaded Sleeping List", #response)
     for i = 1, #response do
         local sleepData = json.decode(response[i].sleepData)
         sleepData.isOld = true
+        sleepData.vehicle = nil
+        sleepData.netId = nil
         Sleeping:new(sleepData)
     end
     dataLoaded = true
